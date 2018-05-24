@@ -1,29 +1,38 @@
-from PyQt4 import QtCore,QtGui
-class Window(QtGui.QWidget):
-    def __init__(self,rows,columns):
-        QtGui.QWidget.__init__(self)
-        self.table=QtGui.QTableWidget(rows,columns,self)
-        for columns in range(columns):
-            for row in range(rows):
-                item=QtGui.QTableWidgetItem('Text%d' % row)
-                if row:
-                    item.setFlags(QtCore.Qt.ItemIsUserCheckable|
-                                  QtCore.Qt.ItemIsEnabled)
-                    item.setCheckState(QtCore.Qt.Unchecked)
-                self.table.setItem(row,columns,item)
-        self.table.itemClicked.connect(self.test)
-        layout=QtGui.QVBoxLayout(self)
-        layout.addWidget(self.table)
-        self._list=[]
-    def test(self,item):
-        if item.checkState()==QtCore.Qt.Checked:
-            print('"%s" Checked' %item.pow())
-        else:
-            print (2)
-if __name__ == '__main__':
-    import sys
-    app=QtGui.QApplication(sys.argv)
-    window=Window(6,3)
-    window.resize(350,300)
-    window.show()
-    sys.exit(app.exec_())
+from scipy import signal
+import matplotlib.pyplot as plt
+import numpy as np
+
+N=800
+# sample spacing
+T=1.0 / 800.0
+x=np.linspace(0.0, N * T, N)
+y1=np.sin(50.0 * 2.0 * np.pi * x) + 0.5 * np.sin(80.0 * 2.0 * np.pi * x) + 0.7 * np.sin(
+    30.0 * 2.0 * np.pi * x) + 0.5 * np.sin(10.0 * 2.0 * np.pi * x)
+'''y2=np.sin(50.0 * 2.0 * np.pi * x) + 0.5 * np.sin(80.0 * 2.0 * np.pi * x) + 0.2 * np.sin(
+    60.0 * 2.0 * np.pi * x) + 0.4 * np.sin(40.0 * 2.0 * np.pi * x)'''
+#
+xf = np.linspace(0.0, 1.0/(2.0*T), N/2)
+
+a,b =signal.butter(2,[0.21,0.32],'bandstop')
+fy = signal.filtfilt(a,b,y1)
+
+# Frequency response
+
+# Generate frequency axis
+
+yf1=np.fft.fft(fy)
+yf1=2.0 / N * np.abs(yf1[:N / 2])
+
+yf2=np.fft.fft(y1)
+yf2=2.0 / N * np.abs(yf2[:N / 2])
+
+
+
+# Plot
+fig, ax = plt.subplots(4, 1, figsize=(8, 6))
+ax[0].plot(y1)
+ax[1].plot(20*np.log10(np.abs(np.fft.rfft(y1))))
+ax[2].plot(yf1)
+ax[3].plot(yf2)
+plt.show()
+

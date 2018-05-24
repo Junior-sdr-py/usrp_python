@@ -5,11 +5,9 @@ import multiprocessing
 from PyQt4 import QtGui, QtCore, uic
 import pyqtgraph as pg
 import value_400
-import time
+from scipy import signal
 import peakutils
 band = 40e6
-
-
 def reciev(flag,arr,filter_mass,maxhold,start_freq,stop_freq,demod_arr,transmit_data,peaks):
     print('PROC400_START')
     #function.initialization_usrp()
@@ -25,14 +23,14 @@ def reciev(flag,arr,filter_mass,maxhold,start_freq,stop_freq,demod_arr,transmit_
             y2=np.sin(50.0 * 2.0 * np.pi * x) + 0.5 * np.sin(80.0 * 2.0 * np.pi * x) + 0.2 * np.sin(
                 60.0 * 2.0 * np.pi * x) + 0.4 * np.sin(40.0 * 2.0 * np.pi * x)
             while flag.value == 1:
-                start=time.time()
+
                 yf1=np.fft.fft(y1)
                 arr[:]=2.0 / N * np.abs(yf1[:N / 2])
                 peak=peakutils.indexes(arr,thres=0.3,min_dist=20)
                 for i in peak:
                     if i not in peaks:
                         peaks.append(i)
-                print (time.time()-start)
+
                 #arr[:] = np.fft.fft(np.random.rand(8192))# function.setZeros(function.reciever(), band * 4, filter_mass, start_freq)
                 #maxhold[:] = function.maxhold1(arr, maxhold[:])
         if flag.value == 2:
@@ -88,7 +86,7 @@ class My_Windows(QtGui.QTabWidget):
         self.image_item.setLookupTable(lut)
         self.image_item.setLevels([-70,0])
 
-        self.tableWidget.itemClicked.connect(self.test_400)
+
         self.tableWidget_2.itemClicked.connect(self.test_800)
         self.tableWidget_3.itemClicked.connect(self.test_1200)
         self.tableWidget_4.itemClicked.connect(self.test_2400)
@@ -127,9 +125,10 @@ class My_Windows(QtGui.QTabWidget):
         data2400.addItem(self.region2400)
 
         self.tread = Tread()
-        self.tread1 = Tread1()
-        self.tread2 = Tread2()
-        self.tread3 = Tread3()
+        self.peak=peak_detection()
+#        self.tread1 = Tread1()
+ #       self.tread2 = Tread2()
+ #       self.tread3 = Tread3()
         self.thread4 = Tread_demod()
     @staticmethod
     def test_400(item):
@@ -177,7 +176,7 @@ class My_Windows(QtGui.QTabWidget):
         self.thread4.quit()
         value_400.flag400.value = 1
         self.tread.start()
-        # self.tread1.start()
+        self.peak.start()
         # self.tread2.start()
         # self.tread3.start()
 
@@ -245,53 +244,40 @@ class Tread(QtCore.QThread):
     def plot_data(self):
         app.processEvents()
         window.plota400.setData(400e6 + (band / 2048) * np.arange(8192), value_400.arr400)
-        print(value_400.peak400)
+
         window.plotb400.setData(400e6 + (band / 2048) * np.arange(8192), value_400.maxhold400, pen='r')
-
-
-class Tread1(QtCore.QThread):
+class peak_detection(QtCore.QThread):
     def __init__(self):
         QtCore.QThread.__init__(self)
-        self.timer2 = QtCore.QTimer()
-
+        self.timer=QtCore.QTimer()
     def run(self):
-        self.timer2.timeout.connect(self.plot_data1)
-        self.timer2.start(10)
-
-    def plot_data1(self):
-        app.processEvents()
-        window.plota800.setData(650e6 + (band / 8192) * np.arange(14 * 8192), arr800)
-        window.plotb800.setData(650e6 + (band / 8192) * np.arange(14 * 8192), maxhold800, pen='r')
-
-
-class Tread2(QtCore.QThread):
-    def __init__(self):
-        QtCore.QThread.__init__(self)
-        self.timer3 = QtCore.QTimer()
-
-    def run(self):
-        self.timer3.timeout.connect(self.plot_data2)
-        self.timer3.start(10)
-
-    def plot_data2(self):
-        app.processEvents()
-        window.plota1200.setData(1000e6 + (band / 4096) * np.arange(36 * 4096), arr1200)
-        window.plotb1200.setData(1000e6 + (band / 4096) * np.arange(36 * 4096), maxhold1200, pen='r')
-
-
-class Tread3(QtCore.QThread):
-    def __init__(self):
-        QtCore.QThread.__init__(self)
-        self.timer4 = QtCore.QTimer()
-
-    def run(self):
-        self.timer4.timeout.connect(self.plot_data3)
-        self.timer4.start(10)
-
-    def plot_data3(self):
-        app.processEvents()
-        window.plota2400.setData(2100e6 + (band / 8192) * np.arange(28 * 8192), arr2400)
-        window.plotb2400.setData(2100e6 + (band / 8192) * np.arange(28 * 8192), maxhold2400, pen='r')
+        window.tableWidget.itemClicked.connect(self.filters)
+        self.table_peak()
+        self.timer.timeout.connect(self.add_new_peak)
+        self.timer.start(10)
+    def table_peak(self):
+        self.len_peak=len(value_400.peak400)
+        for number,data in enumerate(value_400.peak400):
+            item=QtGui.QTableWidgetItem('Filter')
+            window.tableWidget.insertRow(number)
+            window.tableWidget.setItem(number, 0, QtGui.QTableWidgetItem(str((400e6+(band/value_400.arr400.size)*data)/1e6)))
+            window.tableWidget.setItem(number, 1, QtGui.QTableWidgetItem(str(value_400.arr400[data])))
+            if number + 1:
+                    item.setFlags(QtCore.Qt.ItemIsUserCheckable |
+                          QtCore.Qt.ItemIsEnabled)
+                    item.setCheckState(QtCore.Qt.Unchecked)
+            print(number)
+            window.tableWidget.setItem(number, 2, item)
+    def add_new_peak(self):
+        if self.len_peak!=len(value_400.peak400):
+            window.tableWidget.insertRow(len(value_400.peak400)-1)
+            window.tableWidget.setItem(len(value_400.peak400)-1, 0, QtGui.QTableWidgetItem(str(value_400.peak400[len(value_400.peak400)-1])))
+        #table.setItem(row, 2, item)
+    def filters(self,item):
+        if item.checkState() == QtCore.Qt.Checked:
+            print(u'"{}" Checked'.format(item.column()))
+            #value_400.filter_mass_400.remove(value_400.filter_mass_400[item.row()])
+            window.tableWidget.removeRow(item.row())
 
 
 if __name__ == '__main__':
