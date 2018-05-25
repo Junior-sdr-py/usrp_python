@@ -5,7 +5,7 @@ flag400 = multiprocessing.Value('i', 1)
 transmit_data400= multiprocessing.Array('d', 4096*6)
 transmit_data400 = np.frombuffer(transmit_data400.get_obj())
 
-arr400 = multiprocessing.Array('d', 8192)
+arr400 = multiprocessing.Array('d', 8193)
 arr400 = np.frombuffer(arr400.get_obj())
 
 
@@ -27,3 +27,4 @@ maxhold400 = np.frombuffer(maxhold400.get_obj())
 maxhold400[:] = np.ones(8192) * -1000
 
 peak400=manager.list()
+filter_list=manager.list()

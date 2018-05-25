@@ -155,14 +155,18 @@ def filter(filt_list,data,num_samps):
     for i in filt_list:
         a,b=signal.butter(6,[float(i[0])/(num_samps/2),float(i[1])/(num_samps/2)],'bandstop')
         data=signal.filtfilt(a,b,data)
-    return data
-def detect_start_stop(center_sample,data,start,stop):
+    return np.fft.fft(data)
+def detect_start_stop(center_sample,data,start=0,stop=0):
     for i in range(center_sample,data.size):
-        if data[i]==0.9*np.min(data):
+        if data[i]<=0.1:
+            print("for1",i)
             start=i
+            break
     for i in range(center_sample,0,-1):
-        if data[i] == 0.9 * np.min(data):
+        if data[i] <=0.1 :
+            print(i)
             stop=i
+            break
     return start,stop
 
 '''def show_widget():

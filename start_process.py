@@ -25,7 +25,7 @@ def reciev(flag,arr,filter_mass,maxhold,start_freq,stop_freq,demod_arr,transmit_
             while flag.value == 1:
 
                 yf1=np.fft.fft(y1)
-                arr[:]=2.0 / N * np.abs(yf1[:N / 2])
+                arr[:]=function.filter(value_400.filter_list,2.0 / N * np.abs(yf1[:N / 2]),8192*2)
                 peak=peakutils.indexes(arr,thres=0.3,min_dist=20)
                 for i in peak:
                     if i not in peaks:
@@ -266,7 +266,6 @@ class peak_detection(QtCore.QThread):
                     item.setFlags(QtCore.Qt.ItemIsUserCheckable |
                           QtCore.Qt.ItemIsEnabled)
                     item.setCheckState(QtCore.Qt.Unchecked)
-            print(number)
             window.tableWidget.setItem(number, 2, item)
     def add_new_peak(self):
         if self.len_peak!=len(value_400.peak400):
@@ -275,9 +274,18 @@ class peak_detection(QtCore.QThread):
         #table.setItem(row, 2, item)
     def filters(self,item):
         if item.checkState() == QtCore.Qt.Checked:
-            print(u'"{}" Checked'.format(item.column()))
+
+            print(value_400.peak400[item.row()])
+            print(u'"{}" Checked'.format(item.row()))
+            print(value_400.arr400[:])
+            start,stop=function.detect_start_stop(value_400.peak400[item.row()],value_400.arr400[:])
+            value_400.filter_list.append([start,stop])
+
+
+
+
             #value_400.filter_mass_400.remove(value_400.filter_mass_400[item.row()])
-            window.tableWidget.removeRow(item.row())
+            #window.tableWidget.removeRow(item.row())
 
 
 if __name__ == '__main__':
