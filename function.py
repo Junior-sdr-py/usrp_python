@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
 import numpy as np
-import uhd
+from scipy import signal
 from uhd import libpyuhd as lib
 import time
 samples=8192
@@ -151,6 +151,20 @@ def transmitter(data):
         metadata_transmit.start_of_burst=False
         metadata_transmit.end_of_burst=False
         metadata_transmit.has_time_spec=False
+def filter(filt_list,data,num_samps):
+    for i in filt_list:
+        a,b=signal.butter(6,[float(i[0])/(num_samps/2),float(i[1])/(num_samps/2)],'bandstop')
+        data=signal.filtfilt(a,b,data)
+    return data
+def detect_start_stop(center_sample,data,start,stop):
+    for i in range(center_sample,data.size):
+        if data[i]==0.9*np.min(data):
+            start=i
+    for i in range(center_sample,0,-1):
+        if data[i] == 0.9 * np.min(data):
+            stop=i
+    return start,stop
+
 '''def show_widget():
     res = conn.execute("SELECT * from SPECTRUM")
     tables1.tableWidget.setColumnCount(4)
